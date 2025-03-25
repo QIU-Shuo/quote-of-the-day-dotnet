@@ -137,7 +137,7 @@ module dataExportRule './shared/dataExport.bicep' = {
   name: 'loganalytics-dataexportrule'
   scope: rg
   params: {
-    name: '${resourceToken}-dataexportrule'
+    name: 'exp-dataexportrule'
     logAnalyticsWorkspaceName: monitoring.outputs.logAnalyticsWorkspaceName
     storageAccountName: storageAccount.outputs.storageAccountName
     tables: [
