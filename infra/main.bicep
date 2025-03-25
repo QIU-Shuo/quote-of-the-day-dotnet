@@ -5,6 +5,9 @@ targetScope = 'subscription'
 @description('Name of the environment that can be used as part of naming resource convention')
 param environmentName string
 
+@description('Id of the user or app to assign application roles')
+param principalId string = ''
+
 @secure()
 param quoteOfTheDayDefinition object
 
@@ -19,6 +22,8 @@ param AACsku string
 param AACsoftDeleteRetentionInDays int
 param AACenablePurgeProtection bool
 param AACdisableLocalAuth bool
+
+param onlineExperimentWorkspaceLocation string = 'eastus2' // Currently Experiment Workspace only has presense in eastus2
 
 // Tags that should be applied to all resources.
 // 
@@ -52,6 +57,16 @@ module monitoring './shared/monitoring.bicep' = {
   scope: rg
 }
 
+module storageAccount './shared/storage.bicep' = {
+  name: 'storage'
+  scope: rg
+  params: {
+    location: location
+    storageAccountName: '${resourceToken}storage'
+    storageAccountType: 'Standard_LRS'
+  }
+}
+
 module appConfiguration './shared/appConfiguration.bicep' = {
   name: 'appConfiguration'
   params: {
@@ -64,6 +79,75 @@ module appConfiguration './shared/appConfiguration.bicep' = {
     applicationInsightsId: monitoring.outputs.applicationInsightsId
   }
   scope: rg
+}
+
+module onlineExperimentWorkspace './shared/onlineExperimentation.bicep' = {
+  name: 'online-experiment-workspace'
+  scope: rg
+  params: {
+    name: 'online-exp-${substring(resourceToken, 0, 10)}'
+    location: onlineExperimentWorkspaceLocation
+    tags: tags
+    principalId: principalId
+    logAnalyticsWorkspaceName: monitoring.outputs.logAnalyticsWorkspaceName
+    storageAccountName: storageAccount.outputs.storageAccountName
+    appConfigName: appConfiguration.outputs.appConfigurationName
+  }
+}
+
+// Allow online experiment workspace read access to storage
+module logAnalyticsExpAccess './shared/role.bicep' = {
+  scope: rg
+  name: 'storage-account-exp-role'
+  params: {
+    principalId: onlineExperimentWorkspace.outputs.workspaceIdentityPrincipalId
+    roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1' // Storage Blob Data Reader
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Allow online experiment workspace read access to log analytics workspace
+module storageAccountExpAccess './shared/role.bicep'  = {
+  scope: rg
+  name: 'log-analytics-exp-role'
+  params: {
+    principalId: onlineExperimentWorkspace.outputs.workspaceIdentityPrincipalId
+    roleDefinitionId: '73c42c96-874c-492b-b04d-ab87d138a893' // Log Analytics Reader
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Provision summary rules aggregating data for experiment workspace
+var ruleDefinitions = loadYamlContent('./la-summary-rules.yaml')
+module summaryRules './shared/summaryRules.bicep' =  [ for (rule, i) in ruleDefinitions.summaryRules:  {
+  name: 'loganalytics-summaryrule-${i}'
+  scope: rg
+  params: {
+    location: location
+    logAnalyticsWorkspaceName: monitoring.outputs.logAnalyticsWorkspaceName
+    summaryRuleName: rule.name
+    description: rule.description
+    query: rule.query
+    binSize: rule.binSize // see choices at https://aka.ms/LogsSummaryRule#create-or-update-a-summary-rule
+    destinationTable: rule.destinationTable
+  }
+} ]
+
+module dataExportRule './shared/dataExport.bicep' = {
+  name: 'loganalytics-dataexportrule'
+  scope: rg
+  params: {
+    name: '${resourceToken}-dataexportrule'
+    logAnalyticsWorkspaceName: monitoring.outputs.logAnalyticsWorkspaceName
+    storageAccountName: storageAccount.outputs.storageAccountName
+    tables: [
+      'AppEvents'
+      'AppEvents_CL'
+    ]
+  }
+  dependsOn: [
+    summaryRules
+  ]
 }
 
 module appServicePlan './shared/appserviceplan.bicep' = {
@@ -92,3 +176,4 @@ module quoteOfTheDay './app/QuoteOfTheDay.bicep' = {
 
 output APPCONFIG_ENDPOINT string = appConfiguration.outputs.appConfigurationEndpoint
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
+output ONLINE_EXPERIMENT_WORKSPACE_ENDPOINT string = onlineExperimentWorkspace.outputs.workspaceEndpoint

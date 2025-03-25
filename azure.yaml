@@ -7,7 +7,7 @@ hooks:
     prepackage:
         shell: pwsh
         run: |
-            Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+            # Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
             ./infra/Setup-CreateDatabase.ps1
         interactive: true
         continueOnError: false

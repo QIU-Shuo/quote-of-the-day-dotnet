@@ -1,0 +1,30 @@
+summaryRules:
+  - name: "Online-Experimentation-Assignment-Summary"
+    binSize: 20
+    destinationTable: OEWExperimentAssignmentSummary_CL
+    description: "Summary rule definition for online experiment assignment summary."
+    query: |
+      AppEvents
+      | where Name == "FeatureEvaluation"
+      | where Properties has "Percentile"
+      | where tostring(Properties.VariantAssignmentReason) == "Percentile"
+      | where tostring(Properties.TargetingId) != ""
+      | where tostring(Properties.Enabled) == "True"
+      | where tostring(Properties.AllocationId) != ""
+      | where toint(Properties.VariantAssignmentPercentage) < 100
+      | project
+          TimeGenerated,
+          ItemCount,
+          FeatureFlagReference = tostring(Properties.FeatureFlagReference),
+          FeatureName = tostring(Properties.FeatureName),
+          AllocationId = tostring(Properties.AllocationId),
+          Variant = tostring(Properties.Variant),
+          VariantAssignmentPercentage = toreal(Properties.VariantAssignmentPercentage),
+          IsControlVariant = tostring(Properties.DefaultWhenEnabled) == tostring(Properties.Variant)
+      | summarize
+          VariantAssignmentPercentage = take_any(VariantAssignmentPercentage),
+          IsControlVariant = take_any(IsControlVariant),
+          AssignmentEventCount = tolong(sum(ItemCount)),
+          FirstAssignmentTimestamp = min(TimeGenerated),
+          LastAssignmentTimestamp = max(TimeGenerated)
+          by FeatureFlagReference, FeatureName, AllocationId, Variant
