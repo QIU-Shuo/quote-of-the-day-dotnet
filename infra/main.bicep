@@ -142,7 +142,7 @@ module dataExportRule './shared/dataExport.bicep' = {
     storageAccountName: storageAccount.outputs.storageAccountName
     tables: [
       'AppEvents'
-      'AppEvents_CL'
+      //'AppEvents_CL' -- add this later once we have summary rules that writes to this table
     ]
   }
   dependsOn: [
