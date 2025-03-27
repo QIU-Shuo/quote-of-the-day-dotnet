@@ -6,6 +6,8 @@ using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.FeatureManagement.Telemetry.ApplicationInsights;
 using Microsoft.FeatureManagement;
+using QuoteOfTheDay;
+using Microsoft.FeatureManagement.FeatureFilters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,8 +45,10 @@ builder.Services.AddApplicationInsightsTelemetry(
 // Add Azure App Configuration and feature management services to the container.
 builder.Services.AddAzureAppConfiguration()
     .AddFeatureManagement()
-    .WithTargeting()
     .AddApplicationInsightsTelemetryPublisher();
+
+builder.Services.AddSingleton<ITargetingContextAccessor, RandomIdAccessor>();
+
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");

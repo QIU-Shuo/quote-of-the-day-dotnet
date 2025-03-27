@@ -53,16 +53,9 @@ public class IndexModel(
     {
         string? userId = User.Identity?.Name;
 
-        if (!string.IsNullOrEmpty(userId))
-        {
-            // Send telemetry to Application Insights
-            _telemetryClient.TrackEvent("Like");
+        // Send telemetry to Application Insights
+        _telemetryClient.TrackEvent("Like");
 
-            return new JsonResult(new { success = true });
-        }
-        else
-        {
-            return new JsonResult(new { success = false, error = "User not authenticated" });
-        }
+        return new JsonResult(new { success = true });
     }
 }
