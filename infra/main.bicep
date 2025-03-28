@@ -81,6 +81,15 @@ module appConfiguration './shared/appConfiguration.bicep' = {
   scope: rg
 }
 
+module appConfigDataOwnerAccess './shared/role.bicep' = {
+  scope: rg
+  name: 'app-config-data-owner-role'
+  params: {
+    principalId: principalId
+    roleDefinitionId: '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b' // App Configuration Data Owner
+  }
+}
+
 module onlineExperimentWorkspace './shared/onlineExperimentation.bicep' = {
   name: 'online-experiment-workspace'
   scope: rg
@@ -102,7 +111,6 @@ module logAnalyticsExpAccess './shared/role.bicep' = {
   params: {
     principalId: onlineExperimentWorkspace.outputs.workspaceIdentityPrincipalId
     roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1' // Storage Blob Data Reader
-    principalType: 'ServicePrincipal'
   }
 }
 
@@ -113,7 +121,6 @@ module storageAccountExpAccess './shared/role.bicep'  = {
   params: {
     principalId: onlineExperimentWorkspace.outputs.workspaceIdentityPrincipalId
     roleDefinitionId: '73c42c96-874c-492b-b04d-ab87d138a893' // Log Analytics Reader
-    principalType: 'ServicePrincipal'
   }
 }
 
