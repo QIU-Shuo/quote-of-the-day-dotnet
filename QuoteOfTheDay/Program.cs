@@ -45,7 +45,7 @@ builder.Services.AddApplicationInsightsTelemetry(
 // Add Azure App Configuration and feature management services to the container.
 builder.Services.AddAzureAppConfiguration()
     .AddFeatureManagement()
-    .AddApplicationInsightsTelemetryPublisher();
+    .AddApplicationInsightsTelemetry();
 
 builder.Services.AddSingleton<ITargetingContextAccessor, RandomIdAccessor>();
 
@@ -59,6 +59,8 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddRazorPages();
+
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
